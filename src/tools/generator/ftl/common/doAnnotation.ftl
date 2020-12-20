@@ -2,7 +2,7 @@
 /**
  * ${systemName}
  *
- * @table ${doComment}
+ * @table ${tableName}
  * @date ${createDate}
  * @author ${author}
  *

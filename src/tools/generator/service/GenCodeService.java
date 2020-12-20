@@ -16,8 +16,8 @@ import java.util.Properties;
 /**
  * 利用freemarker生成代码
  *
- * @author:chendongsheng
- * @date:2020-10-24
+ * @author chendongsheng
+ * @date 2020-11-22
  */
 public class GenCodeService {
 
@@ -34,12 +34,12 @@ public class GenCodeService {
     /**
      * 生成模板文件
      *
-     * @author:chendongsheng
+     * @author chendongsheng
      */
     public void genFile() throws Exception {
 
-        // 初始化参数
-        this.init();
+        // 校验配置参数并初始化
+        this.checkAndInit();
 
         // 生成ftl文件
         String ftlName = this.properties.getProperty("output.ftl.name");
@@ -74,24 +74,21 @@ public class GenCodeService {
 
         // 生成数据库相关的文件
         GenOracleService genOracleService = new GenOracleService(this.properties);
+        int dbCount = genOracleService.genOraclFiles(this.genConfiguration, createDate);
 
-        
-        
-        
-        System.out.println("总共生成" + count + "个文件！");
+        System.out.println("总共生成" + (count + dbCount) + "个文件！");
 
     }
 
     /**
-     * 初始化配置参数
+     * 校验配置参数并初始化
      *
-     * @author:chendongsheng
+     * @author chendongsheng
      */
-    private void init() throws Exception {
+    private void checkAndInit() throws Exception {
+
         String defaultConfig = "config.properties";
-
         InputStream configInputStream = ClassLoader.getSystemResourceAsStream(defaultConfig);
-
         if (configInputStream == null) {
             try {
                 configInputStream = new FileInputStream(defaultConfig);
@@ -100,7 +97,6 @@ public class GenCodeService {
                 return;
             }
         }
-
         try {
             this.properties.load(configInputStream);
         } catch (IOException e) {
@@ -110,13 +106,6 @@ public class GenCodeService {
 
         // 验证传入参数完整性
         this.checkParams(this.properties);
-
-        // 检查输出文件夹是否存在
-        GenUtils.checkDir(this.outPutDir);
-
-        if (!this.outPutDir.endsWith(File.separator)) {
-            this.outPutDir += File.separator;
-        }
 
         // 创建Configuration对象指定Freemarker版本
         this.genConfiguration = new Configuration(Configuration.VERSION_2_3_23);
@@ -140,7 +129,8 @@ public class GenCodeService {
      * 生成模板文件
      *
      * @param fileType 文件类型
-     * @author:chendongsheng
+     * @param fileName 文件名称
+     * @author chendongsheng
      */
     private void genCommonFile(String fileType, String fileName) {
 
@@ -148,7 +138,7 @@ public class GenCodeService {
 
         if ("ftl".equals(fileType)) {
             try {
-                // 获取模版
+                // 获取模板
                 template = genConfiguration.getTemplate("flowpower/FPftl.ftl");
             } catch (IOException e) {
                 e.printStackTrace();
@@ -160,7 +150,7 @@ public class GenCodeService {
             }
         } else if ("xml".equals(fileType)) {
             try {
-                // 获取模版
+                // 获取模板
                 template = genConfiguration.getTemplate("flowpower/FPxml.ftl");
             } catch (IOException e) {
                 e.printStackTrace();
@@ -180,7 +170,7 @@ public class GenCodeService {
             }
         } else if ("getter".equals(fileType)) {
             try {
-                // 获取模版
+                // 获取模板
                 template = genConfiguration.getTemplate("flowpower/FPGetter.ftl");
             } catch (IOException e) {
                 e.printStackTrace();
@@ -196,7 +186,7 @@ public class GenCodeService {
             }
         } else if ("getterOp".equals(fileType)) {
             try {
-                // 获取模版
+                // 获取模板
                 template = genConfiguration.getTemplate("flowpower/FPGetterOpration.ftl");
             } catch (IOException e) {
                 e.printStackTrace();
@@ -212,7 +202,7 @@ public class GenCodeService {
             }
         } else if ("updater".equals(fileType)) {
             try {
-                // 获取模版
+                // 获取模板
                 template = genConfiguration.getTemplate("flowpower/FPUpdater.ftl");
             } catch (IOException e) {
                 e.printStackTrace();
@@ -228,7 +218,7 @@ public class GenCodeService {
             }
         } else if ("updaterOp".equals(fileType)) {
             try {
-                // 获取模版
+                // 获取模板
                 template = genConfiguration.getTemplate("flowpower/FPUpdaterOpration.ftl");
             } catch (IOException e) {
                 e.printStackTrace();
@@ -242,29 +232,37 @@ public class GenCodeService {
                 dataModel.put("classComment", this.properties.getProperty("output.class.updater.operation.comment"));
 
             }
-        } else if ("DAO".equals(fileType)) {
-            try {
-                // 获取模版
-                template = genConfiguration.getTemplate("hibernate/dao.ftl");
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            if (template != null) {
-                // 插入模板数据
-                dataModel.put("author", this.author);
-                dataModel.put("createDate", this.createDate);
-                // ---------------------插入数据-----------------------------
-
-            }
         } else {
             System.out.println("不支持生成【" + fileType + "】类型的文件");
             return;
         }
 
+        // 写入文件
+        this.writerFile(template, dataModel, outPutDir + fileName);
+
+        // 记录生成文件个数
+        count++;
+        // 由于所有文件共用一个数据集dataModel，所以每生成一个文件后清空数据集
+        this.dataModel.clear();
+
+        System.out.println("成功生成文件:" + fileName);
+
+    }
+
+    /**
+     * 写入文件
+     *
+     * @param template
+     * @param dataModel
+     * @param file
+     * @author chendongsheng
+     */
+    public void writerFile(Template template, Map<String, Object> dataModel, String file) {
+
         Writer writer = null;
         try {
             // 创建一个文件编写对象Writer
-            writer = new OutputStreamWriter(new FileOutputStream(outPutDir + fileName), FILE_ENCODE_GBK);
+            writer = new OutputStreamWriter(new FileOutputStream(file), FILE_ENCODE_GBK);
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
         } catch (FileNotFoundException e) {
@@ -273,7 +271,7 @@ public class GenCodeService {
 
         try {
             // 使用模版和数据输出到指定路径
-            template.process(dataModel, writer);
+            template.process(this.dataModel, writer);
             writer.flush();
         } catch (TemplateException e) {
             e.printStackTrace();
@@ -289,28 +287,26 @@ public class GenCodeService {
                 e.printStackTrace();
             }
         }
-
-        // 记录生成文件个数
-        count++;
-        // 由于所有文件共用一个数据集dataModel，所以每生成一个文件后清空数据集
-        this.dataModel.clear();
-
-        System.out.println("成功生成文件:" + fileName);
-
     }
 
     /**
      * 参数验证
      *
      * @param properties 配置参数
-     * @author:chendongsheng
+     * @author chendongsheng
      */
     private void checkParams(Properties properties) throws Exception {
 
         this.outPutDir = this.properties.getProperty("output.dir");
         if (GenUtils.isBlank(this.outPutDir)) {
-            throw new Exception("请配置文件输出路径！");
+            System.out.println("------未生成文件，请先配置文件在本地的输出路径！");
+            return;
         }
+        if (!this.outPutDir.endsWith(File.separator)) {
+            this.outPutDir += File.separator;
+        }
+        // 检查输出文件夹是否已存在
+        GenUtils.checkDir(this.outPutDir);
 
         String fileName = "";
         String filePath = "";
@@ -348,7 +344,7 @@ public class GenCodeService {
             String oracleUsername = this.properties.getProperty("oracle.username");
             String oraclePassword = this.properties.getProperty("oracle.password");
             String oracleRef = this.properties.getProperty("oracle.ref");
-            
+
             if (GenUtils.isBlank(DOPath)) {
                 throw new Exception("请配置实体类文件的包路径！");
             } else if (GenUtils.isBlank(DAOPath)) {
@@ -358,7 +354,7 @@ public class GenCodeService {
                     || GenUtils.isBlank(oracleRef)) {
                 throw new Exception("Oracle数据库信息配置不完整！");
             }
-            
+
         }
 
     }
