@@ -11,7 +11,9 @@ import tools.generator.service.GenCodeService;
  * 4.部分生成的文件在导入IDE工具上需手动进行导包；
  * 5.生成实体类的serialVersionUID需手动处理；
  * 6.本工具不支持主键为联合主键的Oracle数据库表生成对应实体类和hbm文件，但可在生成文件后自行手动调整。
- *
+ * 
+ * 本工具源码已上传至：https://github.com/chendongsheng30/PLoanCodeGenerator.git
+ * 
  * @author chendongsheng
  * @date 2020-11-22
  */
