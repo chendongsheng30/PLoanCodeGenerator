@@ -335,7 +335,6 @@ public class GenOracleService {
                 } else {
                     nullable = false;
                 }
-
                 this.nullableMap.put(columnName, nullable);
 
                 // Êý¾Ý¿â×Ö¶Î×¢ÊÍ

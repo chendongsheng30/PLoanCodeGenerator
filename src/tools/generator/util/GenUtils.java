@@ -84,7 +84,7 @@ public class GenUtils {
         return str;
     }
 
-    // 首字母大写，其它字符保持不变
+    // 首字母小写，其它字符保持不变
     public static String LowerFirstKeepOthers(String str) {
         if (null == str || str.length() == 0) {
             return str;
@@ -95,7 +95,7 @@ public class GenUtils {
         return str;
     }
 
-    // 首字母小写，其它字符转换成大写
+    // 首字母大写，其它字符转换成小写
     public static String UpperFirstLowerOthers(String str) {
         if (null == str || str.length() == 0) {
             return str;
