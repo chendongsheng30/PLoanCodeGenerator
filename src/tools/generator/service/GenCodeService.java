@@ -253,7 +253,7 @@ public class GenCodeService {
         }
 
         try {
-            // 使用模版和数据输出到指定路径
+            // 使用模板和数据输出到指定路径
             template.process(dataModel, writer);
             writer.flush();
         } catch (TemplateException e) {
