@@ -28,7 +28,7 @@ public class GenCodeService {
     private String createDate;
     private Configuration genConfiguration;
     private String outPutDir;
-    private Map<String, Object> dataModel = new HashMap<>();
+    private Map<String, Object> dataModel = new HashMap<String, Object>();
     private int count = 0;
 
     /**
@@ -41,11 +41,6 @@ public class GenCodeService {
         // 校验配置参数并初始化
         this.checkAndInit();
 
-        // 生成ftl文件
-        String ftlName = this.properties.getProperty("output.ftl.name");
-        if (!GenUtils.isBlank(ftlName)) {
-            this.genCommonFile("ftl", ftlName);
-        }
         // 生成xml文件
         String xmlName = this.properties.getProperty("output.xml.name");
         if (!GenUtils.isBlank(xmlName)) {
@@ -110,7 +105,7 @@ public class GenCodeService {
         // 创建Configuration对象指定Freemarker版本
         this.genConfiguration = new Configuration(Configuration.VERSION_2_3_23);
         // 设置模版路径
-        this.genConfiguration.setClassForTemplateLoading(this.getClass(), "tools/generator/ftl");
+        this.genConfiguration.setClassForTemplateLoading(this.getClass(), "/tools/generator/ftl");
         // 指定生成文件的编码为GBK
         this.genConfiguration.setDefaultEncoding(FILE_ENCODE_GBK);
 
@@ -136,19 +131,7 @@ public class GenCodeService {
 
         Template template = null;
 
-        if ("ftl".equals(fileType)) {
-            try {
-                // 获取模板
-                template = genConfiguration.getTemplate("flowpower/FPftl.ftl");
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            if (template != null) {
-                // 插入模板数据
-                dataModel.put("ftlTitle", this.properties.getProperty("output.ftl.title"));
-
-            }
-        } else if ("xml".equals(fileType)) {
+        if ("xml".equals(fileType)) {
             try {
                 // 获取模板
                 template = genConfiguration.getTemplate("flowpower/FPxml.ftl");
@@ -271,7 +254,7 @@ public class GenCodeService {
 
         try {
             // 使用模版和数据输出到指定路径
-            template.process(this.dataModel, writer);
+            template.process(dataModel, writer);
             writer.flush();
         } catch (TemplateException e) {
             e.printStackTrace();
@@ -305,6 +288,7 @@ public class GenCodeService {
         if (!this.outPutDir.endsWith(File.separator)) {
             this.outPutDir += File.separator;
         }
+        this.properties.setProperty("output.dir", this.outPutDir);
         // 检查输出文件夹是否已存在
         GenUtils.checkDir(this.outPutDir);
 
@@ -337,21 +321,20 @@ public class GenCodeService {
 
         String tablesName = this.properties.getProperty("tables.name");
         if (!GenUtils.isBlank(tablesName)) {
-            String DOPath = this.properties.getProperty("output.DO.package");
-            String DAOPath = this.properties.getProperty("output.DAO.package");
+            String DOPath = this.properties.getProperty("output.do.package");
+            String baseDOPath = this.properties.getProperty("output.base.do.package");
+            String DAOPath = this.properties.getProperty("output.dao.package");
             String oracleUrl = this.properties.getProperty("oracle.url");
-            String oracleDatabaseName = this.properties.getProperty("oracle.database.name");
             String oracleUsername = this.properties.getProperty("oracle.username");
             String oraclePassword = this.properties.getProperty("oracle.password");
             String oracleRef = this.properties.getProperty("oracle.ref");
 
-            if (GenUtils.isBlank(DOPath)) {
+            if (GenUtils.isBlank(DOPath) || GenUtils.isBlank(baseDOPath)) {
                 throw new Exception("请配置实体类文件的包路径！");
             } else if (GenUtils.isBlank(DAOPath)) {
                 throw new Exception("请配置DAO类文件的包路径！");
-            } else if (GenUtils.isBlank(oracleUrl) || GenUtils.isBlank(oracleDatabaseName)
-                    || GenUtils.isBlank(oracleUsername) || GenUtils.isBlank(oraclePassword)
-                    || GenUtils.isBlank(oracleRef)) {
+            } else if (GenUtils.isBlank(oracleUrl) || GenUtils.isBlank(oracleUsername)
+                    || GenUtils.isBlank(oraclePassword) || GenUtils.isBlank(oracleRef)) {
                 throw new Exception("Oracle数据库信息配置不完整！");
             }
 

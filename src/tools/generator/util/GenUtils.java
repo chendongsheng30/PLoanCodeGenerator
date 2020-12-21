@@ -13,8 +13,6 @@ import java.io.IOException;
  */
 public class GenUtils {
 
-    public static String characterFilter[];
-
     // 判断字符串是否为空
     public static boolean isBlank(String str) {
         int strLen;
@@ -56,16 +54,6 @@ public class GenUtils {
             javaName += UpperFirstLowerOthers(nameArray[i]);
         }
         return javaName;
-    }
-
-    public static String lowerSecondKeepOthers(String str) {
-        if (str.length() > 2) {
-            char second = str.charAt(1);
-            if (second > 64 && second < 91) {
-                str = str.charAt(0) + (second + "").toLowerCase() + str.substring(2);
-            }
-        }
-        return str;
     }
 
     // 将表的字段名，转换为JavaBean属性名

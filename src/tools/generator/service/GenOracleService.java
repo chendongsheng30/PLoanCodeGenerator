@@ -32,14 +32,14 @@ public class GenOracleService {
     private DataSource dataSource;
     private QueryRunner queryRunner;
 
-    private Map<String, Object> dataModel = new HashMap<>();
+    private Map<String, Object> dataModel = new HashMap<String, Object>();
     private int count = 0;
 
-    GenCodeService genCodeService = new GenCodeService();
+    private GenCodeService genCodeService = new GenCodeService();
 
     private ArrayList<String> columnNameList = new ArrayList<String>();
 
-    String columnPK = "";
+    private String columnPK = "";
     // key=columnName, value=nullable
     protected Map<String, Boolean> nullableMap = new LinkedHashMap<String, Boolean>();
     // key=columnName, value=comments
@@ -92,26 +92,26 @@ public class GenOracleService {
         this.createDate = createDate;
         this.author = this.properties.getProperty("author");
         this.outPutDir = this.properties.getProperty("output.dir");
+
         this.refMap = getRef();
 
         // 获取要生成的表数组
         String tableNames = this.properties.getProperty("tables.name");
-        String[] tables = tableNames.split("\\|");
-
-        if (tables == null || tables.length == 0) {
+        if (GenUtils.isBlank(tableNames)) {
             return 0;
         }
 
+        String[] tables = tableNames.split("\\|");
         for (int i = 0; i < tables.length; i++) {
             String tableName = tables[i].toUpperCase();
 
             // 初始化数据库字段转实体类的映射数据
             initClumnJavaInfo(tableName);
 
-            // 生成实体类（DO）文件
+            // 生成实体类（do）文件
             this.genDBFile("do", tableName);
 
-            // 生成实体类（BaseDO）文件
+            // 生成实体类（BaseDo）文件
             this.genDBFile("baseDo", tableName);
 
             // 生成hbm映射文件
@@ -120,6 +120,15 @@ public class GenOracleService {
             // 生成数据持久层DAO文件
             this.genDBFile("dao", tableName);
 
+            // 由于所有表共用数据集，所以每处理完一个表后清空数据集
+            this.columnPK = "";
+            this.columnNameList.clear();
+            this.nullableMap.clear();
+            this.commentsMap.clear();
+            this.javaNameMap.clear();
+            this.javaTypeMap.clear();
+            this.gsJavaNameMap.clear();
+            this.dataLengthMap.clear();
         }
 
         return this.count;
@@ -153,11 +162,16 @@ public class GenOracleService {
                 dataModel.put("baseClassPackage", this.properties.getProperty("output.base.do.package"));
                 dataModel.put("className", className);
                 dataModel.put("baseClassName", baseClassName);
-                dataModel.put("columnPK", this.columnPK);
+                if (!GenUtils.isBlank(this.columnPK)) {
+                    dataModel.put("pkType", this.javaTypeMap.get(this.columnPK));
+                    dataModel.put("pkName", this.javaNameMap.get(this.columnPK));
+                }
                 dataModel.put("javaTypeMap", this.javaTypeMap);
                 dataModel.put("javaNameMap", this.javaNameMap);
             }
         } else if ("baseDo".equals(fileType)) {
+            String doName = className;
+            className = baseClassName;
             try {
                 // 获取模板
                 template = genConfiguration.getTemplate("do/baseDo.ftl");
@@ -171,8 +185,17 @@ public class GenOracleService {
                 dataModel.put("createDate", this.createDate);
                 dataModel.put("classPackage", this.properties.getProperty("output.base.do.package"));
                 dataModel.put("className", className);
-                dataModel.put("baseClassName", baseClassName);
+                dataModel.put("doName", doName);
                 dataModel.put("columnPK", this.columnPK);
+                if (!GenUtils.isBlank(this.columnPK)) {
+                    dataModel.put("columnPK", this.columnPK);
+                    dataModel.put("pkType", this.javaTypeMap.get(this.columnPK));
+                    dataModel.put("pkName", this.javaNameMap.get(this.columnPK));
+                    dataModel.put("spkName", GenUtils.UpperFirstKeepOthers(this.javaNameMap.get(this.columnPK)));
+                    //将主键字段从字段集合中移除，防止模板填充时重复
+                    this.columnNameList.remove(this.columnPK);
+                }
+                dataModel.put("columnNames", this.columnNameList);
                 dataModel.put("javaTypeMap", this.javaTypeMap);
                 dataModel.put("javaNameMap", this.javaNameMap);
                 dataModel.put("gsJavaNameMap", this.gsJavaNameMap);
@@ -190,9 +213,14 @@ public class GenOracleService {
                 dataModel.put("tableName", tableName);
                 dataModel.put("classPackage", this.properties.getProperty("output.do.package"));
                 dataModel.put("className", className);
-                dataModel.put("columnPK", this.columnPK);
-                dataModel.put("pkType", this.javaTypeMap.get(this.columnPK));
-                dataModel.put("pkName", this.javaNameMap.get(this.columnPK));
+                if (!GenUtils.isBlank(this.columnPK)) {
+                    dataModel.put("columnPK", this.columnPK);
+                    dataModel.put("pkType", this.javaTypeMap.get(this.columnPK));
+                    dataModel.put("pkName", this.javaNameMap.get(this.columnPK));
+                    //将主键字段从字段集合中移除，防止模板填充时重复
+                    this.columnNameList.remove(this.columnPK);
+                }
+                dataModel.put("columnNames", this.columnNameList);
                 dataModel.put("javaTypeMap", this.javaTypeMap);
                 dataModel.put("javaNameMap", this.javaNameMap);
                 dataModel.put("nullableMap", this.nullableMap);
@@ -228,21 +256,13 @@ public class GenOracleService {
 
         // 写入文件
         String suffix = "hbm".equals(fileType) ? ".hbm" : ".java";
-        genCodeService.writerFile(template, dataModel, (outPutDir + className + suffix));
+        className = "hbm".equals(fileType) ? GenUtils.LowerFirstKeepOthers(className) : className;
+        genCodeService.writerFile(template, this.dataModel, (outPutDir + className + suffix));
 
         // 记录生成文件个数
         count++;
-
-        // 由于所有表共用数据集，所以每生成一个文件后清空数据集
+        // 由于所有文件共用一个数据集dataModel，所以每生成一个文件后清空数据集
         this.dataModel.clear();
-        this.columnPK = "";
-        this.columnNameList.clear();
-        this.nullableMap.clear();
-        this.commentsMap.clear();
-        this.javaNameMap.clear();
-        this.javaTypeMap.clear();
-        this.gsJavaNameMap.clear();
-        this.dataLengthMap.clear();
 
         System.out.println("成功生成文件:" + className + suffix);
 
@@ -309,14 +329,20 @@ public class GenOracleService {
 
                 // 数据库字段是否可为空 
                 nullableStr = columnInfo.get("NULLABLE").toString();
-                if (nullableStr.equals("Y")) {
+                // 数据库是nullable，hbm文件是not-null
+                if (nullableStr.equals("N")) {
                     nullable = true;
+                } else {
+                    nullable = false;
                 }
+
                 this.nullableMap.put(columnName, nullable);
 
                 // 数据库字段注释
-                comments = columnInfo.get("COMMENTS").toString();
-                this.commentsMap.put(columnName, comments);
+                if (columnInfo.get("COMMENTS") != null) {
+                    comments = columnInfo.get("COMMENTS").toString();
+                    this.commentsMap.put(columnName, comments);
+                }
 
                 //get、set方法名中名称
                 gsJavaName = GenUtils.UpperFirstKeepOthers(javaName);

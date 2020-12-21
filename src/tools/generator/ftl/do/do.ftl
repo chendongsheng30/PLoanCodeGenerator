@@ -1,6 +1,6 @@
 package ${classPackage};
 
-import ${baseClassPackage}e.${baseClassName};
+import ${baseClassPackage}.${baseClassName};
 
 <#include "../common/doAnnotation.ftl">
 public class ${className} extends ${baseClassName} {
@@ -11,14 +11,14 @@ public class ${className} extends ${baseClassName} {
 		super();
 	}
 
+<#if pkType?exists>
 	/**
 	 * Constructor for primary key
 	 */
-<#assign pkType = javaTypeMap[columnPK] />
-<#assign pkName = javaNameMap[columnName] />
 	public ${className} (${pkType} ${pkName}) {
-		super(pkName);
+		super(${pkName});
 	}
+</#if>
 
 }
 

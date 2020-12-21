@@ -3,56 +3,72 @@ package ${classPackage};
 import java.io.Serializable;
 
 <#include "../common/doAnnotation.ftl">
-public abstract class ${className} implements Serializable {
+public class ${className} implements Serializable {
 
-	public static String REF = "${className}";
+    public static String REF = "${doName}";
 
-<#list columnNameList as columnName>
+<#if pkType?exists>
+    public static String PROP_${columnPK} = "${pkName}";
+</#if>
+<#list columnNames as columnName>
     <#assign javaName = javaNameMap[columnName] />
-	public static String PROP_${columnName} = "${javaName}";
+    public static String PROP_${columnName} = "${javaName}";
 </#list>
 
-	public ${className} () {
-		initialize();
-	}
+<#if pkType?exists>
+    // primary key
+    private ${pkType} ${pkName};<#if commentsMap[pkName]?exists>//${commentsMap[pkName]}</#if>
+</#if>
 
-	/**
-	 * Constructor for primary key
-	 */
-<#assign pkType = javaTypeMap[columnPK] />
-<#assign pkName = javaNameMap[columnName] />
-<#assign spkName = gsJavaNameMap[columnPK] />
-	public ${className} (${pkType} ${pkName}) {
-		this.set${spkName}(${pkName});
-		initialize();
-	}
-
-	protected void initialize () {
-
-    }
-
-	// primary key
 <#list columnNames as columnName>
     <#assign javaType = javaTypeMap[columnName] />
     <#assign javaName = javaNameMap[columnName] />
-	private ${javaType} ${javaName};<#if commentsMap[columnName]?exists>//${columnCommentsMap[columnName]}</#if>
+    private ${javaType} ${javaName};<#if commentsMap[columnName]?exists>//${commentsMap[columnName]}</#if>
 </#list>
+
+    public ${className} () {
+        initialize();
+    }
+
+<#if pkType?exists>
+    /**
+    * Constructor for primary key
+    */
+    public ${className} (${pkType} ${pkName}) {
+        this.${pkName} = ${pkName};
+        initialize();
+    }
+</#if>
+
+    protected void initialize () {
+
+    }
+
+<#if pkType?exists>
+    public ${pkType} get${spkName} () {
+        return ${pkName};
+    }
+
+    public void set${spkName} (${pkType} ${pkName}) {
+        this.${pkName} = ${pkName};
+    }
+</#if>
 
 <#list columnNames as columnName>
     <#assign javaType = javaTypeMap[columnName] />
     <#assign javaName = javaNameMap[columnName] />
     <#assign gsJavaName = gsJavaNameMap[columnName] />
-	public ${javaType} get${gsJavaName} () {
-		return ${javaName};
-	}
+    public ${javaType} get${gsJavaName} () {
+        return ${javaName};
+    }
 
-	public void set${gsJavaName} (${javaType} ${javaName}) {
-		this.javaName = javaName;
-	}
+    public void set${gsJavaName} (${javaType} ${javaName}) {
+        this.${javaName} = ${javaName};
+    }
 
 </#list>
-	public String toString () {
-		return super.toString();
-	}
+    public String toString () {
+        return super.toString();
+    }
 
 }
